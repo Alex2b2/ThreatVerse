@@ -1,0 +1,38 @@
+{
+  "type": "bundle",
+  "id": "bundle--0000",
+  "objects": [
+    {
+      "type": "intrusion-set",
+      "id": "intrusion-set--apt28",
+      "name": "APT28",
+      "description": "Sample intrusion set APT28"
+    },
+    {
+      "type": "malware",
+      "id": "malware--zeus",
+      "name": "Zeus",
+      "description": "Sample malware Zeus"
+    },
+    {
+      "type": "attack-pattern",
+      "id": "attack-pattern--phishing",
+      "name": "Spearphishing Attachment",
+      "description": "Phishing technique"
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--r1",
+      "relationship_type": "uses",
+      "source_ref": "intrusion-set--apt28",
+      "target_ref": "malware--zeus"
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--r2",
+      "relationship_type": "employs",
+      "source_ref": "malware--zeus",
+      "target_ref": "attack-pattern--phishing"
+    }
+  ]
+}

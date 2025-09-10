@@ -1,0 +1,138 @@
+# backend/db.py
+"""
+DB layer: prefer Neo4j if configured, else fallback to NetworkX in-memory graph.
+Provides a small API: merge_node, create_rel, get_subgraph, search_nodes.
+"""
+
+import os
+from typing import Dict, List, Tuple, Any
+from config import settings
+
+USE_NEO4J = bool(settings.NEO4J_URI and settings.NEO4J_PASSWORD)
+
+if USE_NEO4J:
+    from neo4j import GraphDatabase
+    driver = GraphDatabase.driver(settings.NEO4J_URI, auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD))
+
+else:
+    import networkx as nx
+    NX = nx.Graph()
+    # We'll store node metadata in node attributes keyed by unique id
+
+def merge_node(label: str, uid: str, properties: Dict[str, Any]):
+    """
+    Create or merge a node identified by uid.
+    """
+    if USE_NEO4J:
+        with driver.session() as session:
+            props = ", ".join([f"{k}: $props.{k}" for k in properties.keys()])
+            query = (
+                f"MERGE (n:{label} {{uid: $uid}}) "
+                f"SET n += $props "
+                f"RETURN n"
+            )
+            res = session.run(query, uid=uid, props=properties)
+            return res.single()[0]
+    else:
+        # NetworkX
+        if NX.has_node(uid):
+            NX.nodes[uid].update(properties)
+            NX.nodes[uid]['labels'] = list(set(NX.nodes[uid].get('labels', []) + [label]))
+        else:
+            attrs = properties.copy()
+            attrs['labels'] = [label]
+            NX.add_node(uid, **attrs)
+        return NX.nodes[uid]
+
+def create_relationship(uid_a: str, uid_b: str, rel_type: str, rel_props: Dict[str, Any] = None):
+    rel_props = rel_props or {}
+    if USE_NEO4J:
+        with driver.session() as session:
+            query = (
+                "MATCH (a {uid:$a_uid}), (b {uid:$b_uid}) "
+                "MERGE (a)-[r:" + rel_type + "]->(b) "
+                "SET r += $props "
+                "RETURN r"
+            )
+            session.run(query, a_uid=uid_a, b_uid=uid_b, props=rel_props)
+    else:
+        NX.add_edge(uid_a, uid_b, key=rel_type, **rel_props)
+    return True
+
+def search_nodes_by_name(name_query: str, limit: int = 25):
+    if USE_NEO4J:
+        with driver.session() as session:
+            # naive fulltext/contains search
+            q = "MATCH (n) WHERE toLower(n.name) CONTAINS toLower($q) RETURN n LIMIT $limit"
+            res = session.run(q, q=name_query, limit=limit)
+            nodes = []
+            for r in res:
+                node = r["n"]
+                nodes.append(dict(node))
+            return nodes
+    else:
+        matches = []
+        for uid, data in list(NX.nodes(data=True))[:10000]:
+            name = str(data.get("name", "")).lower()
+            if name_query.lower() in name:
+                d = data.copy()
+                d['_uid'] = uid
+                matches.append(d)
+                if len(matches) >= limit:
+                    break
+        return matches
+
+def get_subgraph(uid: str, depth: int = 1):
+    """
+    Return nodes and edges around uid up to given depth.
+    For Neo4j, we return comparable JSON.
+    """
+    if USE_NEO4J:
+        with driver.session() as session:
+            q = (
+                "MATCH (n {uid:$uid})-[*0.." + str(depth) + "]-(m) "
+                "WITH collect(distinct n) + collect(distinct m) as nodes "
+                "UNWIND nodes as nd "
+                "RETURN distinct nd"
+            )
+            res = session.run(q, uid=uid)
+            nodes = []
+            for r in res:
+                nodes.append(dict(r["nd"]))
+            # edges: simple approach - fetch relationships
+            q2 = "MATCH (a {uid:$uid})-[r*1.." + str(depth) + "]-(b) RETURN a, r, b"
+            res2 = session.run(q2, uid=uid)
+            edges = []
+            for r in res2:
+                # r['r'] is a list of rels; flatten
+                rels = r['r']
+                for rel in rels:
+                    edges.append({
+                        'start': dict(rel.start_node).get('uid'),
+                        'end': dict(rel.end_node).get('uid'),
+                        'type': rel.type
+                    })
+            return {"nodes": nodes, "edges": edges}
+    else:
+        import networkx as nx
+        if uid not in NX:
+            return {"nodes": [], "edges": []}
+        nodes = set([uid])
+        frontier = {uid}
+        for _ in range(depth):
+            new_frontier = set()
+            for n in frontier:
+                new_frontier.update(NX.neighbors(n))
+            nodes.update(new_frontier)
+            frontier = new_frontier
+        node_list = []
+        for n in nodes:
+            d = NX.nodes[n].copy()
+            d['_uid'] = n
+            node_list.append(d)
+        edges = []
+        for a in nodes:
+            for b in NX.neighbors(a):
+                if b in nodes:
+                    edges.append({"start": a, "end": b, "type": NX.get_edge_data(a, b)})
+        return {"nodes": node_list, "edges": edges}

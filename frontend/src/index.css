@@ -1,0 +1,119 @@
+/* Global styles for ThreatVerse Local UI */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root{
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --accent: #0f766e;
+  --accent-2: #0369a1;
+  --border: #e6e9ef;
+  --shadow: 0 6px 18px rgba(8,20,40,0.06);
+  --max-width: 1200px;
+  --gap: 20px;
+}
+
+*{box-sizing: border-box}
+html,body,#root{height:100%}
+body{
+  margin:0;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: linear-gradient(180deg, #f7fbff 0%, var(--bg) 100%);
+  color:#0f172a;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* page container */
+.app-container{
+  max-width: var(--max-width);
+  margin: 28px auto;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  grid-template-rows: auto 1fr;
+  gap: var(--gap);
+  align-items: start;
+}
+
+/* header spans both columns */
+.app-header{
+  grid-column: 1 / -1;
+  display:flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.app-title{
+  font-size: 30px;
+  font-weight:700;
+  color: #061328;
+}
+.subtle{ color: var(--muted); font-size: 14px; }
+
+/* left column controls */
+.panel{
+  background: var(--card);
+  border-radius: 12px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* top-left: ingest + search */
+.controls{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* form elements */
+form input[type="text"], form input[type="password"], .search-input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #d6dbe6;
+  outline: none;
+  width: 260px;
+}
+form button, .btn {
+  background: linear-gradient(90deg,var(--accent),var(--accent-2));
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+small.note{ color: var(--muted); display:block; margin-top:6px; }
+
+/* Graph area */
+.graph-panel{
+  background: transparent;
+  min-height: 620px;
+  border-radius: 12px;
+  padding: 8px;
+  display:flex;
+  align-items:flex-start;
+}
+.graph-canvas{
+  flex:1;
+  min-height: 600px;
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  background: linear-gradient(180deg, rgba(2,6,23,0.02), rgba(6,10,15,0.01));
+}
+
+/* Details panel */
+.details {
+  grid-row: 2 / 3;
+  width: 100%;
+}
+.details .panel{
+  padding: 20px;
+}
+.details h3{ margin:0 0 8px 0; font-size: 18px; color:#061328; }
+
+/* small screens */
+@media (max-width: 980px){
+  .app-container{ grid-template-columns: 1fr; }
+  .details { width: 100%;}
+}

@@ -1,0 +1,11 @@
+{
+  "Event": {
+    "id": "1001",
+    "info": "Fake campaign example",
+    "Attribute": [
+      {"type": "ip-src", "value": "203.0.113.45"},
+      {"type": "domain", "value": "bad.example.com"},
+      {"type": "hash-md5", "value": "d41d8cd98f00b204e9800998ecf8427e"}
+    ]
+  }
+}
