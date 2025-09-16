@@ -25,7 +25,7 @@ in a React web UI.
 ### 2) Frontend
 - Node 18+, npm
 - `wsl`
-- cd frontend`
+- `cd frontend`
 - `npm install`
 - `npm run dev`
 ![alt text](<images/npm run dev.png>)
